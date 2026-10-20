@@ -1,0 +1,81 @@
+// ============================================================
+// Financial Sales Dashboard - DAX
+// Source table: Financials   |   Date table: DateTable
+// Measures live in an empty table named _Measures
+// ============================================================
+
+
+// ---------- DATE TABLE (Modeling > New table) ----------
+// After creating: Mark as date table (Date column),
+// sort Month by Month Number, sort Month Year by Month Year Sort,
+// relationship: DateTable[Date] (1) -> Financials[Date] (*)
+
+DateTable =
+ADDCOLUMNS(
+    CALENDAR(DATE(2013,9,1), DATE(2014,12,31)),
+    "Year", YEAR([Date]),
+    "Month Number", MONTH([Date]),
+    "Month", FORMAT([Date], "MMM"),
+    "Month Year", FORMAT([Date], "MMM YYYY"),
+    "Month Year Sort", YEAR([Date]) * 100 + MONTH([Date]),
+    "Quarter", "Q" & QUARTER([Date])
+)
+
+
+// ---------- CORE MEASURES ----------
+
+Total Sales = SUM(Financials[Sales])
+
+Total Gross Sales = SUM(Financials[Gross Sales])
+
+Total Discounts = SUM(Financials[Discounts])
+
+Total COGS = SUM(Financials[COGS])
+
+Total Profit = SUM(Financials[Profit])
+
+Total Units Sold = SUM(Financials[Units Sold])
+
+Total Orders = COUNTROWS(Financials)
+
+
+// ---------- RATIO MEASURES ----------
+
+Profit Margin % = DIVIDE([Total Profit], [Total Sales])
+
+Discount % = DIVIDE([Total Discounts], [Total Gross Sales])
+
+Avg Sales per Unit = DIVIDE([Total Sales], [Total Units Sold])
+
+Avg Profit per Unit = DIVIDE([Total Profit], [Total Units Sold])
+
+Avg Sales per Order = DIVIDE([Total Sales], [Total Orders])
+
+
+// ---------- SHARE AND LOSS ANALYSIS ----------
+
+Sales % of Total =
+DIVIDE([Total Sales], CALCULATE([Total Sales], ALLSELECTED(Financials)))
+
+Loss Making Orders =
+CALCULATE(COUNTROWS(Financials), Financials[Profit] < 0)
+
+Loss Order % = DIVIDE([Loss Making Orders], [Total Orders])
+
+
+// ---------- TIME INTELLIGENCE ----------
+// Note: 2013 has only Sep-Dec, so Sales LY is blank for Jan-Aug 2014.
+
+Sales LY =
+CALCULATE([Total Sales], SAMEPERIODLASTYEAR(DateTable[Date]))
+
+Profit LY =
+CALCULATE([Total Profit], SAMEPERIODLASTYEAR(DateTable[Date]))
+
+Sales YoY % = DIVIDE([Total Sales] - [Sales LY], [Sales LY])
+
+Sales MoM % =
+VAR PrevMonth = CALCULATE([Total Sales], DATEADD(DateTable[Date], -1, MONTH))
+RETURN DIVIDE([Total Sales] - PrevMonth, PrevMonth)
+
+Sales YTD = TOTALYTD([Total Sales], DateTable[Date])
